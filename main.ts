@@ -38,7 +38,7 @@ let tetherLength = 0;
 // CAMERA
 let camX = 0;
 
-// 3. WIDE LEVEL DEFINITIONS (8 STAGES)
+// 3. WIDE LEVEL DEFINITIONS (8 STAGES WITH UPDATED GEOMETRY)
 const levels: LevelData[] = [
     {
         // Stage 1: Safe Space (Ki)
@@ -115,7 +115,7 @@ const levels: LevelData[] = [
         ]
     },
     {
-        // Stage 6: The Confined Spike Tunnel (FIXED MAGNET SPACING!)
+        // Stage 6: The Confined Spike Tunnel
         door: "6", spawnX: 10, spawnY: 40, goalX: 400,
         platforms: [
             { x: 0, y: 85, w: 40, h: 35, platType: "normal" },
@@ -125,8 +125,8 @@ const levels: LevelData[] = [
         ],
         nodes: [
             { x: 90, y: 55, color: "blue", isFloor: false },
-            { x: 160, y: 55, color: "red", isFloor: false },   // Added to balance gap
-            { x: 230, y: 55, color: "blue", isFloor: false },  // Added to balance gap
+            { x: 160, y: 55, color: "red", isFloor: false },
+            { x: 230, y: 55, color: "blue", isFloor: false },
             { x: 300, y: 55, color: "red", isFloor: false }
         ]
     },
@@ -218,14 +218,12 @@ function resolveCollision(axis: string, lvl: LevelData) {
 game.onUpdate(function () {
     let lvl = levels[currentStage];
 
-    // Camera following horizontal coordinates
     camX = Math.max(0, playerX - 60);
 
-    // D-Pad Left / Right Arrow navigation
     if (controller.left.isPressed()) playerVx -= 0.35;
     if (controller.right.isPressed()) playerVx += 0.35;
 
-    // NATIVE UP ARROW TO JUMP
+    // UP ARROW TO JUMP
     if (controller.up.isPressed() && isGrounded && !controller.A.isPressed()) {
         playerVy = -2.3;
         isGrounded = false;
@@ -239,7 +237,7 @@ game.onUpdate(function () {
     if (controller.A.isPressed()) {
         if (!activeTetherNode) {
             let targetNode: MagnetData = null;
-            let bestDistance = 80;
+            let bestDistance = 85;
 
             for (let i = 0; i < lvl.nodes.length; i++) {
                 let node = lvl.nodes[i];
@@ -252,7 +250,6 @@ game.onUpdate(function () {
 
             if (targetNode) {
                 if (playerColor == targetNode.color) {
-                    // SAME COLOR REPEL BLASTS
                     if (targetNode.isFloor) {
                         playerVy = -5.6;
                         playerVx = 2.2;
@@ -262,7 +259,6 @@ game.onUpdate(function () {
                         playerVy += 0.8;
                     }
                 } else {
-                    // OPPOSITE COLOR GRAPPLE HOLD
                     activeTetherNode = targetNode;
                     tetherLength = bestDistance;
                 }
@@ -314,20 +310,20 @@ game.onUpdate(function () {
     }
 });
 
-// 5. GRAPH PAPER CANVAS RENDERING ENGINE
+// 5. CYBERNETIC NEON GRAPHICS CANVAS RENDERING ENGINE
 game.onPaint(function () {
     let lvl = levels[currentStage];
     let tick = game.runtime() / 150;
 
-    // Background (White paper sheets)
-    screen.fill(1);
+    // Background: 15 = Pure Cyber Void Black
+    screen.fill(15);
 
-    // Blue Ink Blueprint Grid lines
-    let offsetX = -(camX % 16);
-    for (let i = offsetX; i < 160; i += 16) screen.drawLine(i, 0, i, 120, 9);
-    for (let j = 0; j < 120; j += 16) screen.drawLine(0, j, 160, j, 9);
+    // Neon Circuit Grid lines: 11 = Sleek Dark Blue Matrix
+    let offsetX = -(camX % 20);
+    for (let i = offsetX; i < 160; i += 20) screen.drawLine(i, 0, i, 120, 11);
+    for (let j = 0; j < 120; j += 20) screen.drawLine(0, j, 160, j, 11);
 
-    // Platforms
+    // Render Platforms
     for (let i = 0; i < lvl.platforms.length; i++) {
         let plat = lvl.platforms[i];
         let dX = plat.x - camX;
@@ -335,83 +331,107 @@ game.onPaint(function () {
         if (dX > 160 || dX + plat.w < 0) continue;
 
         if (plat.platType == "spikes") {
-            // Hand-sketched hazards (Black)
-            for (let s = 0; s < plat.w; s += 4) {
-                screen.drawLine(dX + s, plat.y + 6, dX + s + 2, plat.y + 2, 15);
-                screen.drawLine(dX + s + 2, plat.y + 2, dX + s + 4, plat.y + 6, 15);
+            // Plasma Laser Hazards (Flashing Red/Yellow alerts)
+            let laserColor = (Math.floor(tick) % 2 == 0) ? 2 : 5;
+            screen.fillRect(dX, plat.y + 3, plat.w, 4, laserColor);
+            for (let s = 0; s < plat.w; s += 8) {
+                screen.drawLine(dX + s, plat.y + 7, dX + s + 4, plat.y, laserColor);
+                screen.drawLine(dX + s + 4, plat.y, dX + s + 8, plat.y + 7, laserColor);
             }
         } else {
-            // Outlined map structures
-            screen.fillRect(dX, plat.y, plat.w, plat.h, 1);
-            screen.drawRect(dX, plat.y, plat.w, plat.h, 15);
+            // Metallic Sci-Fi Blocks (Dark Blue core with crisp Cyan/Purple trim)
+            screen.fillRect(dX, plat.y, plat.w, plat.h, 11);
+            screen.drawRect(dX, plat.y, plat.w, plat.h, 12); // Purple casing edge
+            screen.drawLine(dX, plat.y, dX + plat.w, plat.y, 9); // Neon Cyan top runner plate
         }
     }
 
-    // Door UI Spawners
+    // High Tech Security Entrance Door
     let doorX = 6 - camX;
     if (doorX > -20 && doorX < 160) {
-        screen.fillRect(doorX, lvl.spawnY + 20, 8, 15, 1);
-        screen.drawRect(doorX, lvl.spawnY + 20, 8, 15, 15);
-        screen.print(lvl.door, doorX + 2, lvl.spawnY + 24, 15);
+        screen.fillRect(doorX, lvl.spawnY + 16, 10, 19, 11);
+        screen.drawRect(doorX, lvl.spawnY + 16, 10, 19, 9);
+        screen.print(lvl.door, doorX + 3, lvl.spawnY + 22, 1);
     }
 
-    // Goal Checkpoints
+    // Holographic Extraction Portal (Goal Area)
     let gX = (lvl.goalX + 15) - camX;
     if (gX > 0 && gX < 160) {
-        screen.drawCircle(gX, 62, 5, 15);
-        screen.drawCircle(gX, 62, 2, 15);
+        let radiusPulse = 4 + Math.abs(Math.sin(tick) * 4);
+        screen.drawCircle(gX, 62, radiusPulse, 9);
+        screen.drawCircle(gX, 62, radiusPulse - 3, 13);
+        screen.fillCircle(gX, 62, 1, 1);
     }
 
-    // Magnet Anchor Points
+    // Magnet Anchor Points (Quantum Power Orbs)
     for (let i = 0; i < lvl.nodes.length; i++) {
         let node = lvl.nodes[i];
         let nX = node.x - camX;
 
         if (nX > -25 && nX < 185) {
             let isBlue = node.color == "blue";
-            let textColor = isBlue ? 8 : 2;
+            let mainColor = isBlue ? 9 : 4;  // 9 = Neon Cyan, 4 = Neon Orange
+            let coreColor = isBlue ? 8 : 2;  // 8 = Sky Blue,  2 = High Voltage Red
 
             if (node.isFloor) {
-                screen.fillRect(nX - 16, node.y, 32, 4, 1);
-                screen.drawRect(nX - 16, node.y, 32, 4, 15);
-                screen.print(node.color, nX - 8, node.y + 5, textColor);
+                // Ground Launch Pad
+                screen.fillRect(nX - 14, node.y, 28, 4, 11);
+                screen.drawRect(nX - 14, node.y, 28, 4, mainColor);
+                screen.fillRect(nX - 6, node.y + 1, 12, 2, coreColor);
             } else {
-                screen.fillRect(nX - 12, node.y - 5, 24, 10, 1);
-                screen.drawRect(nX - 12, node.y - 5, 24, 10, 15);
-                screen.print(node.color, nX - 10, node.y - 3, textColor);
+                // Suspended Quantum Node Grid
+                screen.drawCircle(nX, node.y, 7, mainColor);
+                screen.fillCircle(nX, node.y, 3, coreColor);
+                // Orbiting Crosshair lines
+                screen.drawLine(nX - 10, node.y, nX - 5, node.y, 1);
+                screen.drawLine(nX + 5, node.y, nX + 10, node.y, 1);
             }
         }
     }
 
-    // Linked Rope Lines
+    // Energy Beam Tether Line
     if (activeTetherNode) {
-        let tColor = playerColor == "blue" ? 8 : 2;
+        let tColor = playerColor == "blue" ? 9 : 4;
         screen.drawLine((playerX + 4) - camX, playerY + 6, activeTetherNode.x - camX, activeTetherNode.y, tColor);
+        // Secondary Inner core lighting line
+        screen.drawLine((playerX + 4) - camX, playerY + 6, activeTetherNode.x - camX, activeTetherNode.y, 1);
     }
 
-    // CHARACTER SPRITE MODEL
+    // ----------------------------------------------------
+    // CHAR-MODEL UPGRADE: CYBER-RUNNER POWER SUIT
+    // ----------------------------------------------------
     let cx = (playerX + 4) - camX;
     let cy = playerY + 6;
-    let pAura = playerColor == "blue" ? 8 : 2;
-    let chestColor = playerColor == "blue" ? 9 : 2;
+    let activeNeon = playerColor == "blue" ? 9 : 4;   // Visor & Core Glows
+    let accentNeon = playerColor == "blue" ? 8 : 2;   // Structural Accents
 
-    // Pulsing aura boundary tracking ring
+    // Radiant Shield Aura
     let pulse = Math.sin(tick) > 0 ? 1 : 0;
-    screen.drawCircle(cx, cy, 10 + pulse, pAura);
+    screen.drawCircle(cx, cy, 9 + pulse, activeNeon);
 
-    // Core character modules
-    screen.fillCircle(cx, playerY, 3, 1);
-    screen.drawCircle(cx, playerY, 3, 15);
-    screen.fillRect(cx - 3, playerY + 4, 6, 6, chestColor);
-    screen.drawRect(cx - 3, playerY + 4, 6, 6, 15);
+    // 1. Sleek Armored Helmet (Dark Gray structure with active horizontal visors)
+    screen.fillRect(cx - 3, playerY - 3, 6, 6, 11); // Helmet Base
+    screen.drawRect(cx - 3, playerY - 3, 6, 6, 12); // Outer shell
+    screen.drawLine(cx - 2, playerY, cx + 2, playerY, activeNeon); // Glowing Neon Visor Shield
 
-    // Scissor Running Legs animation frames
+    // 2. Heavy Exo-Torso (Plated shoulders with glowing central reactor)
+    screen.fillRect(cx - 4, playerY + 3, 8, 7, 12); // Dark Carbon Frame
+    screen.fillRect(cx - 2, playerY + 4, 4, 4, activeNeon); // Luminous Chest Core Power cell
+    screen.fillCircle(cx, playerY + 6, 1, 1); // Hyper-white fusion center
+
+    // 3. Dynamic Moving Kinetic Thruster Boots (Leg Modules)
     let legOffset = 0;
     if (Math.abs(playerVx) > 0.1 && isGrounded) {
-        legOffset = Math.sin(tick * 3) * 2;
+        legOffset = Math.sin(tick * 4) * 2.5; // Smooth mechanical sprinting cycle
     }
-    screen.drawLine(cx - 2, playerY + 10, cx - 2 + legOffset, playerY + 14, 15);
-    screen.drawLine(cx + 1, playerY + 10, cx + 1 - legOffset, playerY + 14, 15);
+
+    // Left Mechanical Boot + Jet Trail
+    screen.drawLine(cx - 2, playerY + 10, cx - 2 + legOffset, playerY + 13, 1);
+    screen.fillRect(cx - 3 + legOffset, playerY + 13, 2, 1, accentNeon);
+
+    // Right Mechanical Boot + Jet Trail
+    screen.drawLine(cx + 2, playerY + 10, cx + 2 - legOffset, playerY + 13, 1);
+    screen.fillRect(cx + 1 - legOffset, playerY + 13, 2, 1, accentNeon);
 });
 
 resetPlayer();
