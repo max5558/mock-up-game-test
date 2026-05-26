@@ -4,7 +4,7 @@ interface PlatformData {
     y: number;
     w: number;
     h: number;
-    platType: string;
+    platType: string; // "normal", "spikes", "retry", "goal", "phaseBlue", "phaseRed"
 }
 
 interface MagnetData {
@@ -31,6 +31,7 @@ let playerVy = 0;
 let playerColor = "blue";
 let isGrounded = false;
 let currentStage = 0;
+let deathCount = 0;
 
 let activeTetherNode: MagnetData = null;
 let tetherLength = 0;
@@ -38,18 +39,19 @@ let tetherLength = 0;
 // CAMERA
 let camX = 0;
 
-// 3. WIDE LEVEL DEFINITIONS (8 STAGES WITH UPDATED GEOMETRY)
+// 3. WIDE LEVEL DEFINITIONS (8 STAGES - 2 KISHOTENKETSU LOOPS)
 const levels: LevelData[] = [
+    // --- LOOP 1: THE TETHER CORE (STAGES 1-4) ---
     {
         // Stage 1: Safe Space (Ki)
         door: "1", spawnX: 10, spawnY: 40, goalX: 230,
         platforms: [
-            { x: 0, y: 75, w: 80, h: 45, platType: "normal" },
-            { x: 80, y: 95, w: 50, h: 25, platType: "retry" },
-            { x: 130, y: 75, w: 120, h: 45, platType: "goal" }
+            { x: 0, y: 75, w: 60, h: 45, platType: "normal" },
+            { x: 60, y: 90, w: 80, h: 30, platType: "retry" },
+            { x: 140, y: 75, w: 110, h: 45, platType: "goal" }
         ],
         nodes: [
-            { x: 105, y: 25, color: "blue", isFloor: false }
+            { x: 100, y: 25, color: "blue", isFloor: false }
         ]
     },
     {
@@ -58,7 +60,7 @@ const levels: LevelData[] = [
         platforms: [
             { x: 0, y: 75, w: 60, h: 45, platType: "normal" },
             { x: 60, y: 114, w: 70, h: 15, platType: "spikes" },
-            { x: 130, y: 45, w: 20, h: 75, platType: "normal" },
+            { x: 130, y: 60, w: 20, h: 60, platType: "normal" },
             { x: 150, y: 114, w: 70, h: 15, platType: "spikes" },
             { x: 220, y: 75, w: 80, h: 45, platType: "goal" }
         ],
@@ -99,74 +101,73 @@ const levels: LevelData[] = [
             { x: 370, y: 55, color: "red", isFloor: false }
         ]
     },
+
+    // --- LOOP 2: QUANTUM PHASE FIELDS (STAGES 5-8) ---
     {
-        // Stage 5: Momentum Transfer Gauntlet
-        door: "5", spawnX: 10, spawnY: 40, goalX: 420,
+        // Stage 5: Phase Shift Introduction (Ki)
+        door: "5", spawnX: 10, spawnY: 40, goalX: 340,
         platforms: [
-            { x: 0, y: 80, w: 45, h: 40, platType: "normal" },
-            { x: 45, y: 114, w: 335, h: 15, platType: "spikes" },
-            { x: 380, y: 80, w: 60, h: 40, platType: "goal" }
+            { x: 0, y: 80, w: 40, h: 40, platType: "normal" },
+            { x: 40, y: 85, w: 10, h: 35, platType: "normal" },
+            { x: 50, y: 90, w: 10, h: 30, platType: "normal" },
+            { x: 60, y: 95, w: 220, h: 25, platType: "normal" },
+            { x: 80, y: 75, w: 35, h: 10, platType: "phaseBlue" },
+            { x: 140, y: 75, w: 35, h: 10, platType: "phaseRed" },
+            { x: 200, y: 75, w: 35, h: 10, platType: "phaseBlue" },
+            { x: 260, y: 80, w: 80, h: 40, platType: "goal" }
         ],
-        nodes: [
-            { x: 100, y: 20, color: "blue", isFloor: false },
-            { x: 180, y: 20, color: "red", isFloor: false },
-            { x: 260, y: 20, color: "blue", isFloor: false },
-            { x: 340, y: 20, color: "red", isFloor: false }
-        ]
+        nodes: []
     },
     {
-        // Stage 6: The Confined Spike Tunnel
-        door: "6", spawnX: 10, spawnY: 40, goalX: 400,
+        // Stage 6: The Ghost Barrier Swing (Sho) 
+        door: "6", spawnX: 10, spawnY: 40, goalX: 310,
         platforms: [
             { x: 0, y: 85, w: 40, h: 35, platType: "normal" },
-            { x: 40, y: 114, w: 320, h: 15, platType: "spikes" },
-            { x: 120, y: 0, w: 160, h: 30, platType: "spikes" },
-            { x: 360, y: 85, w: 60, h: 35, platType: "goal" }
+            { x: 40, y: 114, w: 220, h: 15, platType: "spikes" },
+            { x: 140, y: 25, w: 15, h: 65, platType: "phaseBlue" },
+            { x: 250, y: 85, w: 60, h: 35, platType: "goal" }
         ],
         nodes: [
-            { x: 90, y: 55, color: "blue", isFloor: false },
-            { x: 160, y: 55, color: "red", isFloor: false },
-            { x: 230, y: 55, color: "blue", isFloor: false },
-            { x: 300, y: 55, color: "red", isFloor: false }
+            { x: 95, y: 20, color: "red", isFloor: false },
+            { x: 195, y: 20, color: "blue", isFloor: false }
         ]
     },
     {
-        // Stage 7: Dual Color Launch Pads
-        door: "7", spawnX: 10, spawnY: 50, goalX: 460,
+        // Stage 7: The Rhythm Drop Filter (Ten) - FIXED: BALANCED HEIGHT STEPS
+        door: "7", spawnX: 15, spawnY: 30, goalX: 350,
         platforms: [
-            { x: 0, y: 90, w: 40, h: 30, platType: "normal" },
-            { x: 40, y: 114, w: 380, h: 15, platType: "spikes" },
-            { x: 420, y: 90, w: 60, h: 30, platType: "goal" }
+            { x: 0, y: 65, w: 45, h: 55, platType: "normal" },
+            { x: 45, y: 114, w: 255, h: 15, platType: "spikes" },
+            { x: 70, y: 75, w: 30, h: 10, platType: "phaseBlue" },
+            { x: 125, y: 65, w: 30, h: 10, platType: "phaseRed" },
+            { x: 180, y: 55, w: 30, h: 10, platType: "phaseBlue" }, // Smoothed to Y=55 instead of Y=45
+            { x: 235, y: 65, w: 30, h: 10, platType: "phaseRed" },
+            { x: 285, y: 75, w: 65, h: 45, platType: "goal" }
         ],
-        nodes: [
-            { x: 80, y: 105, color: "red", isFloor: true },
-            { x: 190, y: 105, color: "blue", isFloor: true },
-            { x: 310, y: 30, color: "red", isFloor: false },
-            { x: 380, y: 30, color: "blue", isFloor: false }
-        ]
+        nodes: []
     },
     {
-        // Stage 8: Mega Grand Trial
-        door: "8", spawnX: 10, spawnY: 40, goalX: 560,
+        // Stage 8: Grand Convergence Gauntlet (Ketsu)
+        door: "8", spawnX: 10, spawnY: 40, goalX: 430,
         platforms: [
-            { x: 0, y: 80, w: 35, h: 40, platType: "normal" },
-            { x: 35, y: 114, w: 500, h: 15, platType: "spikes" },
-            { x: 200, y: 65, w: 40, h: 15, platType: "normal" },
-            { x: 380, y: 55, w: 40, h: 15, platType: "normal" },
-            { x: 535, y: 80, w: 60, h: 40, platType: "goal" }
+            { x: 0, y: 85, w: 35, h: 40, platType: "normal" },
+            { x: 35, y: 114, w: 345, h: 15, platType: "spikes" },
+            { x: 120, y: 75, w: 35, h: 10, platType: "phaseBlue" },
+            { x: 245, y: 20, w: 15, h: 65, platType: "phaseRed" },
+            { x: 370, y: 85, w: 60, h: 40, platType: "goal" }
         ],
         nodes: [
-            { x: 80, y: 105, color: "red", isFloor: true },
-            { x: 140, y: 20, color: "blue", isFloor: false },
-            { x: 290, y: 105, color: "blue", isFloor: true },
-            { x: 340, y: 25, color: "red", isFloor: false },
-            { x: 460, y: 25, color: "blue", isFloor: false },
-            { x: 510, y: 25, color: "red", isFloor: false }
+            { x: 65, y: 105, color: "red", isFloor: true },
+            { x: 195, y: 25, color: "blue", isFloor: false },
+            { x: 310, y: 105, color: "blue", isFloor: true }
         ]
     }
 ];
 
-function resetPlayer() {
+function resetPlayer(isDeath: boolean) {
+    if (isDeath) {
+        deathCount++;
+    }
     let lvl = levels[currentStage];
     playerX = lvl.spawnX;
     playerY = lvl.spawnY;
@@ -176,7 +177,7 @@ function resetPlayer() {
     activeTetherNode = null;
 }
 
-// B BUTTON TO SWAP POLARITY (Standard X or Z key)
+// B BUTTON TO SWAP POLARITY
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     playerColor = (playerColor == "blue") ? "red" : "blue";
 });
@@ -188,11 +189,15 @@ function getDistance(x1: number, y1: number, x2: number, y2: number): number {
 function resolveCollision(axis: string, lvl: LevelData) {
     for (let i = 0; i < lvl.platforms.length; i++) {
         let plat = lvl.platforms[i];
+
+        if (plat.platType == "phaseBlue" && playerColor != "blue") continue;
+        if (plat.platType == "phaseRed" && playerColor != "red") continue;
+
         if (playerX + 8 > plat.x && playerX < plat.x + plat.w &&
             playerY + 12 > plat.y && playerY < plat.y + plat.h) {
 
             if (plat.platType == "spikes") {
-                resetPlayer();
+                resetPlayer(true);
                 return;
             }
 
@@ -223,7 +228,6 @@ game.onUpdate(function () {
     if (controller.left.isPressed()) playerVx -= 0.35;
     if (controller.right.isPressed()) playerVx += 0.35;
 
-    // UP ARROW TO JUMP
     if (controller.up.isPressed() && isGrounded && !controller.A.isPressed()) {
         playerVy = -2.3;
         isGrounded = false;
@@ -233,7 +237,6 @@ game.onUpdate(function () {
     playerVx *= activeTetherNode ? 0.97 : 0.82;
     playerVy *= 0.98;
 
-    // SPACEBAR (A BUTTON) HOOK CONTROLS
     if (controller.A.isPressed()) {
         if (!activeTetherNode) {
             let targetNode: MagnetData = null;
@@ -292,6 +295,12 @@ game.onUpdate(function () {
 
     playerX += playerVx;
     resolveCollision("x", lvl);
+
+    if (playerX < 0) {
+        playerX = 0;
+        if (playerVx < 0) playerVx = 0;
+    }
+
     playerY += playerVy;
     isGrounded = false;
     resolveCollision("y", lvl);
@@ -299,31 +308,47 @@ game.onUpdate(function () {
     if (playerX > lvl.goalX) {
         if (currentStage < levels.length - 1) {
             currentStage++;
-            resetPlayer();
+            resetPlayer(false);
         } else {
             game.over(true);
         }
     }
 
     if (playerY > 135) {
-        resetPlayer();
+        resetPlayer(true);
     }
 });
 
-// 5. CYBERNETIC NEON GRAPHICS CANVAS RENDERING ENGINE
+// 5. GRAPHICS ENGINE
 game.onPaint(function () {
     let lvl = levels[currentStage];
     let tick = game.runtime() / 150;
 
-    // Background: 15 = Pure Cyber Void Black
     screen.fill(15);
 
-    // Neon Circuit Grid lines: 11 = Sleek Dark Blue Matrix
-    let offsetX = -(camX % 20);
-    for (let i = offsetX; i < 160; i += 20) screen.drawLine(i, 0, i, 120, 11);
-    for (let j = 0; j < 120; j += 20) screen.drawLine(0, j, 160, j, 11);
+    for (let n = 0; n < 3; n++) {
+        let nebX = (n * 100 - Math.floor(camX * 0.1)) % 200;
+        if (nebX < -40) nebX += 200;
+        screen.fillCircle(nebX, 30 + (n * 25), 18, 12);
+        screen.fillCircle(nebX + 15, 35 + (n * 25), 12, 11);
+    }
 
-    // Render Platforms
+    for (let i = 0; i < 25; i++) {
+        let starScale = (i % 3 == 0) ? 0.35 : 0.20;
+        let sX = (i * 43 - Math.floor(camX * starScale)) % 160;
+        if (sX < 0) sX += 160;
+        let sY = (i * 17) % 120;
+        let starColor = 1;
+        if (i % 4 == 0) starColor = 9;
+        if (i % 7 == 0) starColor = 5;
+
+        if (i % 2 == 0 && Math.sin(tick + i) > 0.4) {
+            screen.setPixel(sX, sY, starColor);
+        } else if (i % 2 != 0) {
+            screen.setPixel(sX, sY, starColor);
+        }
+    }
+
     for (let i = 0; i < lvl.platforms.length; i++) {
         let plat = lvl.platforms[i];
         let dX = plat.x - camX;
@@ -331,22 +356,34 @@ game.onPaint(function () {
         if (dX > 160 || dX + plat.w < 0) continue;
 
         if (plat.platType == "spikes") {
-            // Plasma Laser Hazards (Flashing Red/Yellow alerts)
-            let laserColor = (Math.floor(tick) % 2 == 0) ? 2 : 5;
+            let laserColor = (Math.floor(tick) % 2 == 0) ? 2 : 4;
             screen.fillRect(dX, plat.y + 3, plat.w, 4, laserColor);
             for (let s = 0; s < plat.w; s += 8) {
                 screen.drawLine(dX + s, plat.y + 7, dX + s + 4, plat.y, laserColor);
                 screen.drawLine(dX + s + 4, plat.y, dX + s + 8, plat.y + 7, laserColor);
             }
+        } else if (plat.platType == "phaseBlue" || plat.platType == "phaseRed") {
+            let isBlueField = plat.platType == "phaseBlue";
+            let isActive = isBlueField ? (playerColor == "blue") : (playerColor == "red");
+
+            if (isActive) {
+                let coreColor = isBlueField ? 9 : 4;
+                screen.fillRect(dX, plat.y, plat.w, plat.h, isBlueField ? 11 : 2);
+                screen.drawRect(dX, plat.y, plat.w, plat.h, coreColor);
+                screen.drawLine(dX + 2, plat.y + (plat.h / 2), dX + plat.w - 3, plat.y + (plat.h / 2), 1);
+            } else {
+                let ghostColor = isBlueField ? 11 : 2;
+                if (Math.floor(tick) % 2 == 0) {
+                    screen.drawRect(dX, plat.y, plat.w, plat.h, ghostColor);
+                }
+            }
         } else {
-            // Metallic Sci-Fi Blocks (Dark Blue core with crisp Cyan/Purple trim)
-            screen.fillRect(dX, plat.y, plat.w, plat.h, 11);
-            screen.drawRect(dX, plat.y, plat.w, plat.h, 12); // Purple casing edge
-            screen.drawLine(dX, plat.y, dX + plat.w, plat.y, 9); // Neon Cyan top runner plate
+            screen.fillRect(dX, plat.y, plat.w, plat.h, 15);
+            screen.drawRect(dX, plat.y, plat.w, plat.h, 11);
+            screen.drawLine(dX, plat.y, dX + plat.w, plat.y, 9);
         }
     }
 
-    // High Tech Security Entrance Door
     let doorX = 6 - camX;
     if (doorX > -20 && doorX < 160) {
         screen.fillRect(doorX, lvl.spawnY + 16, 10, 19, 11);
@@ -354,84 +391,69 @@ game.onPaint(function () {
         screen.print(lvl.door, doorX + 3, lvl.spawnY + 22, 1);
     }
 
-    // Holographic Extraction Portal (Goal Area)
     let gX = (lvl.goalX + 15) - camX;
     if (gX > 0 && gX < 160) {
-        let radiusPulse = 4 + Math.abs(Math.sin(tick) * 4);
+        let radiusPulse = 4 + Math.abs(Math.sin(tick) * 5);
         screen.drawCircle(gX, 62, radiusPulse, 9);
-        screen.drawCircle(gX, 62, radiusPulse - 3, 13);
+        screen.drawCircle(gX, 62, radiusPulse - 3, 3);
         screen.fillCircle(gX, 62, 1, 1);
     }
 
-    // Magnet Anchor Points (Quantum Power Orbs)
     for (let i = 0; i < lvl.nodes.length; i++) {
         let node = lvl.nodes[i];
         let nX = node.x - camX;
 
         if (nX > -25 && nX < 185) {
             let isBlue = node.color == "blue";
-            let mainColor = isBlue ? 9 : 4;  // 9 = Neon Cyan, 4 = Neon Orange
-            let coreColor = isBlue ? 8 : 2;  // 8 = Sky Blue,  2 = High Voltage Red
+            let mainColor = isBlue ? 9 : 4;
+            let coreColor = isBlue ? 8 : 2;
 
             if (node.isFloor) {
-                // Ground Launch Pad
-                screen.fillRect(nX - 14, node.y, 28, 4, 11);
+                screen.fillRect(nX - 14, node.y, 28, 4, 15);
                 screen.drawRect(nX - 14, node.y, 28, 4, mainColor);
                 screen.fillRect(nX - 6, node.y + 1, 12, 2, coreColor);
             } else {
-                // Suspended Quantum Node Grid
                 screen.drawCircle(nX, node.y, 7, mainColor);
                 screen.fillCircle(nX, node.y, 3, coreColor);
-                // Orbiting Crosshair lines
                 screen.drawLine(nX - 10, node.y, nX - 5, node.y, 1);
                 screen.drawLine(nX + 5, node.y, nX + 10, node.y, 1);
             }
         }
     }
 
-    // Energy Beam Tether Line
     if (activeTetherNode) {
         let tColor = playerColor == "blue" ? 9 : 4;
         screen.drawLine((playerX + 4) - camX, playerY + 6, activeTetherNode.x - camX, activeTetherNode.y, tColor);
-        // Secondary Inner core lighting line
         screen.drawLine((playerX + 4) - camX, playerY + 6, activeTetherNode.x - camX, activeTetherNode.y, 1);
     }
 
-    // ----------------------------------------------------
-    // CHAR-MODEL UPGRADE: CYBER-RUNNER POWER SUIT
-    // ----------------------------------------------------
     let cx = (playerX + 4) - camX;
     let cy = playerY + 6;
-    let activeNeon = playerColor == "blue" ? 9 : 4;   // Visor & Core Glows
-    let accentNeon = playerColor == "blue" ? 8 : 2;   // Structural Accents
+    let activeNeon = playerColor == "blue" ? 9 : 4;
+    let accentNeon = playerColor == "blue" ? 8 : 2;
 
-    // Radiant Shield Aura
     let pulse = Math.sin(tick) > 0 ? 1 : 0;
     screen.drawCircle(cx, cy, 9 + pulse, activeNeon);
 
-    // 1. Sleek Armored Helmet (Dark Gray structure with active horizontal visors)
-    screen.fillRect(cx - 3, playerY - 3, 6, 6, 11); // Helmet Base
-    screen.drawRect(cx - 3, playerY - 3, 6, 6, 12); // Outer shell
-    screen.drawLine(cx - 2, playerY, cx + 2, playerY, activeNeon); // Glowing Neon Visor Shield
+    screen.fillRect(cx - 3, playerY - 3, 6, 6, 11);
+    screen.drawRect(cx - 3, playerY - 3, 6, 6, 12);
+    screen.drawLine(cx - 2, playerY, cx + 2, playerY, activeNeon);
 
-    // 2. Heavy Exo-Torso (Plated shoulders with glowing central reactor)
-    screen.fillRect(cx - 4, playerY + 3, 8, 7, 12); // Dark Carbon Frame
-    screen.fillRect(cx - 2, playerY + 4, 4, 4, activeNeon); // Luminous Chest Core Power cell
-    screen.fillCircle(cx, playerY + 6, 1, 1); // Hyper-white fusion center
+    screen.fillRect(cx - 4, playerY + 3, 8, 7, 12);
+    screen.fillRect(cx - 2, playerY + 4, 4, 4, activeNeon);
+    screen.fillCircle(cx, playerY + 6, 1, 1);
 
-    // 3. Dynamic Moving Kinetic Thruster Boots (Leg Modules)
     let legOffset = 0;
     if (Math.abs(playerVx) > 0.1 && isGrounded) {
-        legOffset = Math.sin(tick * 4) * 2.5; // Smooth mechanical sprinting cycle
+        legOffset = Math.sin(tick * 4) * 2.5;
     }
-
-    // Left Mechanical Boot + Jet Trail
     screen.drawLine(cx - 2, playerY + 10, cx - 2 + legOffset, playerY + 13, 1);
     screen.fillRect(cx - 3 + legOffset, playerY + 13, 2, 1, accentNeon);
-
-    // Right Mechanical Boot + Jet Trail
     screen.drawLine(cx + 2, playerY + 10, cx + 2 - legOffset, playerY + 13, 1);
     screen.fillRect(cx + 1 - legOffset, playerY + 13, 2, 1, accentNeon);
+
+    screen.print("STAGE " + (currentStage + 1), 5, 5, 9);
+    screen.print("DEATHS: " + deathCount, 95, 5, 2);
 });
 
-resetPlayer();
+resetPlayer(false);
