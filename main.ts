@@ -31,7 +31,7 @@ let playerVy = 0;
 let playerColor = "blue";
 let isGrounded = false;
 let currentStage = 0;
-let deathCount = 0;
+let livesCount = 3;
 
 let activeTetherNode: MagnetData = null;
 let tetherLength = 0;
@@ -105,7 +105,7 @@ const levels: LevelData[] = [
     // --- LOOP 2: QUANTUM PHASE FIELDS (STAGES 5-8) ---
     {
         // Stage 5: Phase Shift Introduction (Ki)
-        door: "5", spawnX: 10, spawnY: 40, goalX: 340,
+        door: "5", spawnX: 10, spawnY: 40, goalX: 320,
         platforms: [
             { x: 0, y: 80, w: 40, h: 40, platType: "normal" },
             { x: 40, y: 85, w: 10, h: 35, platType: "normal" },
@@ -119,13 +119,14 @@ const levels: LevelData[] = [
         nodes: []
     },
     {
-        // Stage 6: The Ghost Barrier Swing (Sho) 
-        door: "6", spawnX: 10, spawnY: 40, goalX: 310,
+        // Stage 6: The Ghost Barrier Swing (Sho)
+        door: "6", spawnX: 10, spawnY: 40, goalX: 330, // Right edge
         platforms: [
             { x: 0, y: 85, w: 40, h: 35, platType: "normal" },
-            { x: 40, y: 114, w: 220, h: 15, platType: "spikes" },
+            { x: 40, y: 114, w: 250, h: 15, platType: "spikes" },
             { x: 140, y: 25, w: 15, h: 65, platType: "phaseBlue" },
-            { x: 250, y: 85, w: 60, h: 35, platType: "goal" }
+            { x: 240, y: 25, w: 15, h: 65, platType: "phaseRed" }, // Red wall to force color swap!
+            { x: 290, y: 85, w: 60, h: 35, platType: "goal" }
         ],
         nodes: [
             { x: 95, y: 20, color: "red", isFloor: false },
@@ -133,14 +134,14 @@ const levels: LevelData[] = [
         ]
     },
     {
-        // Stage 7: The Rhythm Drop Filter (Ten) - FIXED: BALANCED HEIGHT STEPS
-        door: "7", spawnX: 15, spawnY: 30, goalX: 350,
+        // Stage 7: The Rhythm Drop Filter (Ten)
+        door: "7", spawnX: 15, spawnY: 30, goalX: 330,
         platforms: [
             { x: 0, y: 65, w: 45, h: 55, platType: "normal" },
             { x: 45, y: 114, w: 255, h: 15, platType: "spikes" },
             { x: 70, y: 75, w: 30, h: 10, platType: "phaseBlue" },
             { x: 125, y: 65, w: 30, h: 10, platType: "phaseRed" },
-            { x: 180, y: 55, w: 30, h: 10, platType: "phaseBlue" }, // Smoothed to Y=55 instead of Y=45
+            { x: 180, y: 55, w: 30, h: 10, platType: "phaseBlue" },
             { x: 235, y: 65, w: 30, h: 10, platType: "phaseRed" },
             { x: 285, y: 75, w: 65, h: 45, platType: "goal" }
         ],
@@ -148,7 +149,7 @@ const levels: LevelData[] = [
     },
     {
         // Stage 8: Grand Convergence Gauntlet (Ketsu)
-        door: "8", spawnX: 10, spawnY: 40, goalX: 430,
+        door: "8", spawnX: 10, spawnY: 40, goalX: 410,
         platforms: [
             { x: 0, y: 85, w: 35, h: 40, platType: "normal" },
             { x: 35, y: 114, w: 345, h: 15, platType: "spikes" },
@@ -164,10 +165,16 @@ const levels: LevelData[] = [
     }
 ];
 
-function resetPlayer(isDeath: boolean) {
-    if (isDeath) {
-        deathCount++;
+function handlePlayerDeath() {
+    livesCount--;
+    if (livesCount <= 0) {
+        game.over(false);
+    } else {
+        resetPlayer();
     }
+}
+
+function resetPlayer() {
     let lvl = levels[currentStage];
     playerX = lvl.spawnX;
     playerY = lvl.spawnY;
@@ -197,7 +204,7 @@ function resolveCollision(axis: string, lvl: LevelData) {
             playerY + 12 > plat.y && playerY < plat.y + plat.h) {
 
             if (plat.platType == "spikes") {
-                resetPlayer(true);
+                handlePlayerDeath();
                 return;
             }
 
@@ -308,14 +315,14 @@ game.onUpdate(function () {
     if (playerX > lvl.goalX) {
         if (currentStage < levels.length - 1) {
             currentStage++;
-            resetPlayer(false);
+            resetPlayer();
         } else {
             game.over(true);
         }
     }
 
     if (playerY > 135) {
-        resetPlayer(true);
+        handlePlayerDeath();
     }
 });
 
@@ -391,12 +398,34 @@ game.onPaint(function () {
         screen.print(lvl.door, doorX + 3, lvl.spawnY + 22, 1);
     }
 
+    // DRAW THE TARGET END-GOAL
     let gX = (lvl.goalX + 15) - camX;
     if (gX > 0 && gX < 160) {
-        let radiusPulse = 4 + Math.abs(Math.sin(tick) * 5);
-        screen.drawCircle(gX, 62, radiusPulse, 9);
-        screen.drawCircle(gX, 62, radiusPulse - 3, 3);
-        screen.fillCircle(gX, 62, 1, 1);
+        let goalY = (currentStage == 3) ? 47 : (levels[currentStage].platforms[levels[currentStage].platforms.length - 1].y - 15);
+
+        if (currentStage === 7) {
+            // STAGE 8: GOLDEN VICTORY CROWN
+            let bobbing = Math.sin(tick) * 2;
+            let crownY = goalY - 2 + bobbing;
+            let goldColor = (Math.floor(tick * 1.5) % 2 == 0) ? 5 : 4;
+
+            screen.fillRect(gX - 6, crownY, 13, 5, goldColor);
+            screen.fillRect(gX - 6, crownY - 4, 2, 4, goldColor);
+            screen.fillRect(gX - 2, crownY - 3, 2, 3, goldColor);
+            screen.fillRect(gX + 2, crownY - 3, 2, 3, goldColor);
+            screen.fillRect(gX + 5, crownY - 4, 2, 4, goldColor);
+            screen.setPixel(gX - 5, crownY - 5, 1);
+            screen.setPixel(gX - 1, crownY - 4, 1);
+            screen.setPixel(gX + 3, crownY - 4, 1);
+            screen.setPixel(gX + 6, crownY - 5, 1);
+            screen.fillRect(gX - 4, crownY + 2, 9, 2, 2);
+        } else {
+            // STAGES 1-7: STANDARD NEON TELEPORTER RING
+            let radiusPulse = 4 + Math.abs(Math.sin(tick) * 5);
+            screen.drawCircle(gX, goalY, radiusPulse, 9);
+            screen.drawCircle(gX, goalY, radiusPulse - 3, 3);
+            screen.fillCircle(gX, goalY, 1, 1);
+        }
     }
 
     for (let i = 0; i < lvl.nodes.length; i++) {
@@ -453,7 +482,7 @@ game.onPaint(function () {
     screen.fillRect(cx + 1 - legOffset, playerY + 13, 2, 1, accentNeon);
 
     screen.print("STAGE " + (currentStage + 1), 5, 5, 9);
-    screen.print("DEATHS: " + deathCount, 95, 5, 2);
+    screen.print("LIVES: " + livesCount, 105, 5, 2);
 });
 
-resetPlayer(false);
+resetPlayer();
