@@ -23,7 +23,20 @@ interface LevelData {
     nodes: MagnetData[];
 }
 
+interface SpaceParticle {
+    x: number;
+    y: number;
+    speed: number;
+    color: number;
+}
+
 // 2. CORE GAME STATE
+let appState = "CONSENT"; // "CONSENT", "PLAYING", "FINISHED"
+let dataConsent = false;
+let startTime = 0;
+let endTime = 0;
+let totalButtonPresses = 0;
+
 let playerX = 15;
 let playerY = 40;
 let playerVx = 0;
@@ -31,19 +44,29 @@ let playerVy = 0;
 let playerColor = "blue";
 let isGrounded = false;
 let currentStage = 0;
-let livesCount = 3;
+let livesCount = 5;
 
 let activeTetherNode: MagnetData = null;
 let tetherLength = 0;
+let prevAPressed = false;
 
 // CAMERA
 let camX = 0;
 
-// 3. WIDE LEVEL DEFINITIONS (8 STAGES - 2 KISHOTENKETSU LOOPS)
+// GALAXY PARTICLES ARRAY
+let galaxyParticles: SpaceParticle[] = [];
+for (let i = 0; i < 20; i++) {
+    galaxyParticles.push({
+        x: Math.randomRange(0, 160),
+        y: Math.randomRange(0, 120),
+        speed: Math.randomRange(2, 6) / 10,
+        color: (Math.randomRange(0, 1) == 0) ? 1 : 11
+    });
+}
+
+// 3. WIDE LEVEL DEFINITIONS
 const levels: LevelData[] = [
-    // --- LOOP 1: THE TETHER CORE (STAGES 1-4) ---
     {
-        // Stage 1: Safe Space (Ki)
         door: "1", spawnX: 10, spawnY: 40, goalX: 230,
         platforms: [
             { x: 0, y: 75, w: 60, h: 45, platType: "normal" },
@@ -55,7 +78,6 @@ const levels: LevelData[] = [
         ]
     },
     {
-        // Stage 2: Challenge & Pillar (Sho)
         door: "2", spawnX: 10, spawnY: 40, goalX: 280,
         platforms: [
             { x: 0, y: 75, w: 60, h: 45, platType: "normal" },
@@ -70,7 +92,6 @@ const levels: LevelData[] = [
         ]
     },
     {
-        // Stage 3: The Massive Gap (Ten)
         door: "3", spawnX: 10, spawnY: 40, goalX: 320,
         platforms: [
             { x: 0, y: 75, w: 40, h: 45, platType: "normal" },
@@ -85,7 +106,6 @@ const levels: LevelData[] = [
         ]
     },
     {
-        // Stage 4: Mastery Integration (Ketsu)
         door: "4", spawnX: 10, spawnY: 60, goalX: 430,
         platforms: [
             { x: 0, y: 95, w: 40, h: 25, platType: "normal" },
@@ -101,10 +121,7 @@ const levels: LevelData[] = [
             { x: 370, y: 55, color: "red", isFloor: false }
         ]
     },
-
-    // --- LOOP 2: QUANTUM PHASE FIELDS (STAGES 5-8) ---
     {
-        // Stage 5: Phase Shift Introduction (Ki)
         door: "5", spawnX: 10, spawnY: 40, goalX: 320,
         platforms: [
             { x: 0, y: 80, w: 40, h: 40, platType: "normal" },
@@ -119,13 +136,12 @@ const levels: LevelData[] = [
         nodes: []
     },
     {
-        // Stage 6: The Ghost Barrier Swing (Sho)
-        door: "6", spawnX: 10, spawnY: 40, goalX: 330, // Right edge
+        door: "6", spawnX: 10, spawnY: 40, goalX: 330,
         platforms: [
             { x: 0, y: 85, w: 40, h: 35, platType: "normal" },
             { x: 40, y: 114, w: 250, h: 15, platType: "spikes" },
             { x: 140, y: 25, w: 15, h: 65, platType: "phaseBlue" },
-            { x: 240, y: 25, w: 15, h: 65, platType: "phaseRed" }, // Red wall to force color swap!
+            { x: 240, y: 25, w: 15, h: 65, platType: "phaseRed" },
             { x: 290, y: 85, w: 60, h: 35, platType: "goal" }
         ],
         nodes: [
@@ -134,7 +150,6 @@ const levels: LevelData[] = [
         ]
     },
     {
-        // Stage 7: The Rhythm Drop Filter (Ten)
         door: "7", spawnX: 15, spawnY: 30, goalX: 330,
         platforms: [
             { x: 0, y: 65, w: 45, h: 55, platType: "normal" },
@@ -148,7 +163,6 @@ const levels: LevelData[] = [
         nodes: []
     },
     {
-        // Stage 8: Grand Convergence Gauntlet (Ketsu)
         door: "8", spawnX: 10, spawnY: 40, goalX: 410,
         platforms: [
             { x: 0, y: 85, w: 35, h: 40, platType: "normal" },
@@ -165,7 +179,43 @@ const levels: LevelData[] = [
     }
 ];
 
+// --- AMBIENT GALAXY CHORD SYNTH THREAD ---
+forever(function () {
+    if (appState === "PLAYING") {
+        // Chord 1: Shimmering E Minor 9 (Deep Space)
+        let chord1 = [330, 392, 494, 587, 740]; // E, G, B, D, F#
+        for (let i = 0; i < chord1.length; i++) {
+            if (appState !== "PLAYING") return;
+            music.playTone(chord1[i], 160);
+            pause(40); // Fast cascade to mimic a single chord strum
+        }
+        pause(600); // Breathe inside the nebula
+
+        // Chord 2: Cosmic C Major 7 (Bright/Athereal)
+        let chord2 = [262, 330, 392, 494, 659]; // C, E, G, B, E
+        for (let i = 0; i < chord2.length; i++) {
+            if (appState !== "PLAYING") return;
+            music.playTone(chord2[i], 160);
+            pause(40);
+        }
+        pause(600);
+
+        // Chord 3: Mysterious A Minor 11
+        let chord3 = [440, 523, 587, 659, 784]; // A, C, D, E, G
+        for (let i = 0; i < chord3.length; i++) {
+            if (appState !== "PLAYING") return;
+            music.playTone(chord3[i], 160);
+            pause(40);
+        }
+        pause(1400); // Silent drift before loop restarts
+    } else {
+        pause(500);
+    }
+});
+
 function handlePlayerDeath() {
+    music.playTone(262, 100);
+    music.playTone(131, 200);
     livesCount--;
     if (livesCount <= 0) {
         game.over(false);
@@ -184,9 +234,52 @@ function resetPlayer() {
     activeTetherNode = null;
 }
 
-// B BUTTON TO SWAP POLARITY
+function startGame() {
+    appState = "PLAYING";
+    startTime = game.runtime();
+    resetPlayer();
+}
+
+// 4. DATA COLLECTION & BUTTON EVENTS
+function trackPress() {
+    if (appState === "PLAYING" && dataConsent) {
+        totalButtonPresses++;
+    }
+}
+
+controller.left.onEvent(ControllerButtonEvent.Pressed, trackPress);
+controller.right.onEvent(ControllerButtonEvent.Pressed, trackPress);
+controller.up.onEvent(ControllerButtonEvent.Pressed, trackPress);
+
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (appState === "CONSENT") {
+        dataConsent = true;
+        startGame();
+    } else if (appState === "FINISHED") {
+        currentStage = 0;
+        livesCount = 5;
+        totalButtonPresses = 0;
+        startGame();
+    } else {
+        trackPress();
+    }
+});
+
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    playerColor = (playerColor == "blue") ? "red" : "blue";
+    if (appState === "CONSENT") {
+        dataConsent = false;
+        startGame();
+    } else if (appState === "PLAYING") {
+        trackPress();
+        playerColor = (playerColor == "blue") ? "red" : "blue";
+        if (playerColor == "blue") {
+            music.playTone(392, 50);
+            music.playTone(523, 80);
+        } else {
+            music.playTone(523, 50);
+            music.playTone(392, 80);
+        }
+    }
 });
 
 function getDistance(x1: number, y1: number, x2: number, y2: number): number {
@@ -226,25 +319,31 @@ function resolveCollision(axis: string, lvl: LevelData) {
     }
 }
 
-// 4. MAIN GAME ENGINE LOOP
+// 5. MAIN GAME ENGINE LOOP
 game.onUpdate(function () {
-    let lvl = levels[currentStage];
+    if (appState !== "PLAYING") return;
 
+    let lvl = levels[currentStage];
     camX = Math.max(0, playerX - 60);
+
+    let currentAPressed = controller.A.isPressed();
+    let justPressedA = currentAPressed && !prevAPressed;
 
     if (controller.left.isPressed()) playerVx -= 0.35;
     if (controller.right.isPressed()) playerVx += 0.35;
 
-    if (controller.up.isPressed() && isGrounded && !controller.A.isPressed()) {
+    if (controller.up.isPressed() && isGrounded && !currentAPressed) {
         playerVy = -2.3;
         isGrounded = false;
+        music.playTone(330, 40);
+        music.playTone(659, 100);
     }
 
     playerVy += 0.15;
-    playerVx *= activeTetherNode ? 0.97 : 0.82;
+    playerVx *= activeTetherNode ? 0.98 : 0.82;
     playerVy *= 0.98;
 
-    if (controller.A.isPressed()) {
+    if (currentAPressed) {
         if (!activeTetherNode) {
             let targetNode: MagnetData = null;
             let bestDistance = 85;
@@ -263,35 +362,50 @@ game.onUpdate(function () {
                     if (targetNode.isFloor) {
                         playerVy = -5.6;
                         playerVx = 2.2;
+                        if (justPressedA) {
+                            music.playTone(165, 80);
+                            music.playTone(330, 150);
+                        }
                     } else {
                         let dx = (playerX + 4) - targetNode.x;
                         playerVx += dx > 0 ? 1.3 : -1.3;
                         playerVy += 0.8;
+                        if (justPressedA) {
+                            music.playTone(262, 50);
+                            music.playTone(196, 100);
+                        }
                     }
                 } else {
                     activeTetherNode = targetNode;
                     tetherLength = bestDistance;
+                    music.playTone(880, 40);
+                    music.playTone(1047, 60);
                 }
             }
         } else {
             if (playerColor == activeTetherNode.color) {
                 activeTetherNode = null;
             } else {
-                let pX = playerX + 4;
-                let pY = playerY + 6;
-                let dist = getDistance(pX, pY, activeTetherNode.x, activeTetherNode.y);
+                let nextX = playerX + 4 + playerVx;
+                let nextY = playerY + 6 + playerVy;
+                let dist = getDistance(nextX, nextY, activeTetherNode.x, activeTetherNode.y);
 
                 if (dist > tetherLength) {
-                    let dx = (pX - activeTetherNode.x) / dist;
-                    let dy = (pY - activeTetherNode.y) / dist;
-
-                    playerX = (activeTetherNode.x + dx * tetherLength) - 4;
-                    playerY = (activeTetherNode.y + dy * tetherLength) - 6;
+                    let dx = (nextX - activeTetherNode.x) / dist;
+                    let dy = (nextY - activeTetherNode.y) / dist;
 
                     let dotProduct = playerVx * dx + playerVy * dy;
                     if (dotProduct > 0) {
                         playerVx -= dotProduct * dx;
                         playerVy -= dotProduct * dy;
+                    }
+
+                    let currentDist = getDistance(playerX + 4, playerY + 6, activeTetherNode.x, activeTetherNode.y);
+                    if (currentDist > tetherLength) {
+                        let cdx = (playerX + 4 - activeTetherNode.x) / currentDist;
+                        let cdy = (playerY + 6 - activeTetherNode.y) / currentDist;
+                        playerX = (activeTetherNode.x + cdx * tetherLength) - 4;
+                        playerY = (activeTetherNode.y + cdy * tetherLength) - 6;
                     }
                 }
             }
@@ -315,24 +429,84 @@ game.onUpdate(function () {
     if (playerX > lvl.goalX) {
         if (currentStage < levels.length - 1) {
             currentStage++;
+            music.playTone(523, 100);
+            music.playTone(659, 100);
+            music.playTone(784, 200);
             resetPlayer();
         } else {
-            game.over(true);
+            appState = "FINISHED";
+            endTime = game.runtime();
+            music.playTone(1047, 100);
+            music.playTone(1318, 100);
+            music.playTone(1568, 400);
         }
     }
 
     if (playerY > 135) {
         handlePlayerDeath();
     }
+
+    prevAPressed = currentAPressed;
 });
 
-// 5. GRAPHICS ENGINE
+// 6. HIGH-PERFORMANCE GRAPHICS ENGINE
 game.onPaint(function () {
+    if (appState === "CONSENT") {
+        screen.fill(15);
+        screen.fillRect(10, 10, 140, 100, 1);
+        screen.drawRect(10, 10, 140, 100, 9);
+        screen.print("DATA CONSENT", 35, 20, 9);
+        screen.print("We'd like to track", 15, 40, 11);
+        screen.print("your completion time", 15, 52, 11);
+        screen.print("& button presses.", 15, 64, 11);
+        screen.print("A: YES  (Track)", 20, 85, 5);
+        screen.print("B: NO   (Opt out)", 20, 97, 2);
+        return;
+    }
+
+    if (appState === "FINISHED") {
+        screen.fill(15);
+        screen.print("VICTORY!", 55, 10, 5);
+        if (dataConsent) {
+            let finalTime = (endTime - startTime) / 1000;
+            let finalMins = finalTime / 60;
+            let bpm = totalButtonPresses / finalMins;
+            screen.print("Time:", 25, 30, 11);
+            screen.print((Math.round(finalTime * 10) / 10) + " s", 85, 30, 9);
+            screen.print("Presses:", 25, 45, 11);
+            screen.print("" + totalButtonPresses, 85, 45, 9);
+            screen.print("Avg BPM:", 25, 60, 11);
+            screen.print("" + Math.round(bpm), 85, 60, 5);
+            screen.print("Lives Left:", 25, 75, 11);
+            screen.print("" + livesCount, 95, 75, 8);
+        } else {
+            screen.print("Lives Left:", 40, 40, 11);
+            screen.print("" + livesCount, 110, 40, 8);
+            screen.print("Data not tracked.", 15, 65, 11);
+            screen.print("(Consent opted out)", 15, 80, 2);
+        }
+        let flash = Math.floor(game.runtime() / 400) % 2 === 0 ? 9 : 1;
+        screen.print("Press A to Restart", 15, 105, flash);
+        return;
+    }
+
     let lvl = levels[currentStage];
     let tick = game.runtime() / 150;
+    let floorTick = Math.floor(tick);
 
     screen.fill(15);
 
+    // RENDER FLOATING GALAXY PARTICLES (STARS)
+    for (let p of galaxyParticles) {
+        p.x -= p.speed;
+        if (p.x < 0) {
+            p.x = 160;
+            p.y = Math.randomRange(0, 120);
+        }
+        screen.setPixel(p.x, p.y, p.color);
+    }
+
+    // Large Nebulae Clouds
     for (let n = 0; n < 3; n++) {
         let nebX = (n * 100 - Math.floor(camX * 0.1)) % 200;
         if (nebX < -40) nebX += 200;
@@ -340,22 +514,7 @@ game.onPaint(function () {
         screen.fillCircle(nebX + 15, 35 + (n * 25), 12, 11);
     }
 
-    for (let i = 0; i < 25; i++) {
-        let starScale = (i % 3 == 0) ? 0.35 : 0.20;
-        let sX = (i * 43 - Math.floor(camX * starScale)) % 160;
-        if (sX < 0) sX += 160;
-        let sY = (i * 17) % 120;
-        let starColor = 1;
-        if (i % 4 == 0) starColor = 9;
-        if (i % 7 == 0) starColor = 5;
-
-        if (i % 2 == 0 && Math.sin(tick + i) > 0.4) {
-            screen.setPixel(sX, sY, starColor);
-        } else if (i % 2 != 0) {
-            screen.setPixel(sX, sY, starColor);
-        }
-    }
-
+    // Platform Drawing
     for (let i = 0; i < lvl.platforms.length; i++) {
         let plat = lvl.platforms[i];
         let dX = plat.x - camX;
@@ -363,16 +522,17 @@ game.onPaint(function () {
         if (dX > 160 || dX + plat.w < 0) continue;
 
         if (plat.platType == "spikes") {
-            let laserColor = (Math.floor(tick) % 2 == 0) ? 2 : 4;
-            screen.fillRect(dX, plat.y + 3, plat.w, 4, laserColor);
-            for (let s = 0; s < plat.w; s += 8) {
-                screen.drawLine(dX + s, plat.y + 7, dX + s + 4, plat.y, laserColor);
-                screen.drawLine(dX + s + 4, plat.y, dX + s + 8, plat.y + 7, laserColor);
+            let laserColor = (floorTick % 2 == 0) ? 2 : 4;
+            screen.fillRect(dX, plat.y + 6, plat.w, plat.h - 6, 15);
+            for (let sx = 0; sx < plat.w; sx += 8) {
+                if (dX + sx + 8 <= dX + plat.w) {
+                    screen.drawLine(dX + sx, plat.y + 8, dX + sx + 4, plat.y, laserColor);
+                    screen.drawLine(dX + sx + 4, plat.y, dX + sx + 8, plat.y + 8, laserColor);
+                }
             }
         } else if (plat.platType == "phaseBlue" || plat.platType == "phaseRed") {
             let isBlueField = plat.platType == "phaseBlue";
             let isActive = isBlueField ? (playerColor == "blue") : (playerColor == "red");
-
             if (isActive) {
                 let coreColor = isBlueField ? 9 : 4;
                 screen.fillRect(dX, plat.y, plat.w, plat.h, isBlueField ? 11 : 2);
@@ -380,7 +540,7 @@ game.onPaint(function () {
                 screen.drawLine(dX + 2, plat.y + (plat.h / 2), dX + plat.w - 3, plat.y + (plat.h / 2), 1);
             } else {
                 let ghostColor = isBlueField ? 11 : 2;
-                if (Math.floor(tick) % 2 == 0) {
+                if (floorTick % 2 == 0) {
                     screen.drawRect(dX, plat.y, plat.w, plat.h, ghostColor);
                 }
             }
@@ -398,17 +558,13 @@ game.onPaint(function () {
         screen.print(lvl.door, doorX + 3, lvl.spawnY + 22, 1);
     }
 
-    // DRAW THE TARGET END-GOAL
     let gX = (lvl.goalX + 15) - camX;
     if (gX > 0 && gX < 160) {
         let goalY = (currentStage == 3) ? 47 : (levels[currentStage].platforms[levels[currentStage].platforms.length - 1].y - 15);
-
         if (currentStage === 7) {
-            // STAGE 8: GOLDEN VICTORY CROWN
             let bobbing = Math.sin(tick) * 2;
             let crownY = goalY - 2 + bobbing;
             let goldColor = (Math.floor(tick * 1.5) % 2 == 0) ? 5 : 4;
-
             screen.fillRect(gX - 6, crownY, 13, 5, goldColor);
             screen.fillRect(gX - 6, crownY - 4, 2, 4, goldColor);
             screen.fillRect(gX - 2, crownY - 3, 2, 3, goldColor);
@@ -420,7 +576,6 @@ game.onPaint(function () {
             screen.setPixel(gX + 6, crownY - 5, 1);
             screen.fillRect(gX - 4, crownY + 2, 9, 2, 2);
         } else {
-            // STAGES 1-7: STANDARD NEON TELEPORTER RING
             let radiusPulse = 4 + Math.abs(Math.sin(tick) * 5);
             screen.drawCircle(gX, goalY, radiusPulse, 9);
             screen.drawCircle(gX, goalY, radiusPulse - 3, 3);
@@ -431,12 +586,10 @@ game.onPaint(function () {
     for (let i = 0; i < lvl.nodes.length; i++) {
         let node = lvl.nodes[i];
         let nX = node.x - camX;
-
         if (nX > -25 && nX < 185) {
             let isBlue = node.color == "blue";
             let mainColor = isBlue ? 9 : 4;
             let coreColor = isBlue ? 8 : 2;
-
             if (node.isFloor) {
                 screen.fillRect(nX - 14, node.y, 28, 4, 15);
                 screen.drawRect(nX - 14, node.y, 28, 4, mainColor);
@@ -456,33 +609,37 @@ game.onPaint(function () {
         screen.drawLine((playerX + 4) - camX, playerY + 6, activeTetherNode.x - camX, activeTetherNode.y, 1);
     }
 
-    let cx = (playerX + 4) - camX;
-    let cy = playerY + 6;
-    let activeNeon = playerColor == "blue" ? 9 : 4;
-    let accentNeon = playerColor == "blue" ? 8 : 2;
+    let px = playerX - camX;
+    let py = playerY;
+    let suitColor = 1;
+    let accent = playerColor == "blue" ? 9 : 4;
+    let darkAccent = playerColor == "blue" ? 8 : 2;
 
-    let pulse = Math.sin(tick) > 0 ? 1 : 0;
-    screen.drawCircle(cx, cy, 9 + pulse, activeNeon);
+    screen.fillRect(px - 2, py + 2, 3, 6, darkAccent);
+    screen.drawLine(px - 2, py + 2, px - 2, py + 7, accent);
+    screen.fillRect(px + 1, py, 6, 5, suitColor);
+    screen.fillRect(px + 3, py + 1, 5, 3, 15);
+    screen.fillRect(px + 4, py + 1, 3, 2, accent);
+    screen.fillRect(px, py + 5, 8, 5, suitColor);
+    screen.fillRect(px + 1, py + 7, 6, 2, darkAccent);
+    screen.setPixel(px + 4, py + 6, accent);
 
-    screen.fillRect(cx - 3, playerY - 3, 6, 6, 11);
-    screen.drawRect(cx - 3, playerY - 3, 6, 6, 12);
-    screen.drawLine(cx - 2, playerY, cx + 2, playerY, activeNeon);
-
-    screen.fillRect(cx - 4, playerY + 3, 8, 7, 12);
-    screen.fillRect(cx - 2, playerY + 4, 4, 4, activeNeon);
-    screen.fillCircle(cx, playerY + 6, 1, 1);
-
-    let legOffset = 0;
+    let leftLegY = py + 10;
+    let rightLegY = py + 10;
     if (Math.abs(playerVx) > 0.1 && isGrounded) {
-        legOffset = Math.sin(tick * 4) * 2.5;
+        let bob = Math.sin(tick * 5);
+        if (bob > 0) leftLegY -= 1;
+        else rightLegY -= 1;
     }
-    screen.drawLine(cx - 2, playerY + 10, cx - 2 + legOffset, playerY + 13, 1);
-    screen.fillRect(cx - 3 + legOffset, playerY + 13, 2, 1, accentNeon);
-    screen.drawLine(cx + 2, playerY + 10, cx + 2 - legOffset, playerY + 13, 1);
-    screen.fillRect(cx + 1 - legOffset, playerY + 13, 2, 1, accentNeon);
+    screen.fillRect(px + 1, leftLegY, 2, 2, suitColor);
+    screen.fillRect(px + 1, leftLegY + 2, 2, 1, darkAccent);
+    screen.fillRect(px + 5, rightLegY, 2, 2, suitColor);
+    screen.fillRect(px + 5, rightLegY + 2, 2, 1, darkAccent);
 
     screen.print("STAGE " + (currentStage + 1), 5, 5, 9);
     screen.print("LIVES: " + livesCount, 105, 5, 2);
+    if (dataConsent) {
+        let runningTime = (game.runtime() - startTime) / 1000;
+        screen.print(Math.round(runningTime) + "s", 70, 5, 11);
+    }
 });
-
-resetPlayer();
